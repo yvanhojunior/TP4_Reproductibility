@@ -228,3 +228,73 @@ Oui, cette version du programme se comporte différemment de la version sans see
 
 Ce comportement illustre l'importance de **contrôler explicitement les sources d'aléatoire** quand on veut des résultats reproductibles.
 
+### Section 2.5 – Générateur avec seed fournie par l'utilisateur
+
+**Comportement observé :**
+
+Avec la même graine (`42`), le programme produit exactement la même séquence :
+./random_user_seed 42 → 71876166, 708592740, 1483128881, 907283241, 442951012
+./random_user_seed 42 → 71876166, 708592740, 1483128881, 907283241, 442951012
+
+### Section 2.6.1 – Questions sur l'approximation de π par Monte Carlo
+
+#### Question 1 – Implémentation et tests
+
+**Tests réalisés :**
+
+| Itérations (n) | Estimation de π | Écart avec π réel |
+|----------------|-----------------|-------------------|
+| 100            | 3.040000        | -0.101593         |
+| 1 000          | 3.048000        | -0.093593         |
+| 10 000         | 3.122000        | -0.019593         |
+| 100 000        | 3.139840        | -0.001753         |
+
+**Observations :**
+- Plus le nombre d'itérations augmente, plus l'estimation se rapproche de la vraie valeur de π (3.14159...)
+- La durée mesurée reste à 0 seconde car les exécutions sont trop rapides pour la résolution de `time()` (1 seconde)
+- La date/heure de compilation est figée (car on n'a pas recompilé entre les tests)
+
+**Comportement attendu :**  
+La méthode de Monte Carlo converge en \( \frac{1}{\sqrt{n}} \) : plus on tire de points, plus l'estimation est précise.
+
+#### Question 2 – Effet du nombre d'itérations
+
+**Observations :**
+
+| Itérations | Estimation π | Écart à π réel (3.14159) | Temps mesuré |
+|------------|--------------|--------------------------|--------------|
+| 100        | 3.040000     | -0.10159                 | 0s           |
+| 1 000      | 3.048000     | -0.09359                 | 0s           |
+| 10 000     | 3.122000     | -0.01959                 | 0s           |
+| 100 000    | 3.139840     | -0.00175                 | 0s           |
+
+**Ce qu'on constate :**
+
+1. **Précision** : L'estimation de π se rapproche de la valeur réelle quand \(n\) augmente.
+    - Pour \(n = 100\) : erreur de 0.10
+    - Pour \(n = 100 000\) : erreur de 0.00175
+
+2. **Temps d'exécution** : Mesuré à 0 seconde dans tous les cas, car la résolution de `time()` (1 seconde) est trop grossière pour des calculs si rapides. En réalité, le temps augmente linéairement avec \(n\), mais reste < 1s jusqu'à 100 000 itérations.
+
+**Explication théorique :**  
+La méthode de Monte Carlo converge en \(O\left(\frac{1}{\sqrt{n}}\right)\). Cela signifie que pour diviser l'erreur par 10, il faut multiplier le nombre d'itérations par 100. C'est cohérent avec nos résultats : entre 100 et 10 000 itérations (facteur 100), l'erreur passe de 0.10 à 0.02 (divisée par ~5).
+
+#### Question 3 – Reproductibilité à la compilation
+
+**Test réalisé :**
+
+```bash
+# Compilation 1
+gcc -o montecarlo-pi montecarlo-pi.c -lm
+sha512sum montecarlo-pi > hash1.txt
+
+# Compilation 2 (immédiatement après)
+gcc -o montecarlo-pi montecarlo-pi.c -lm
+sha512sum montecarlo-pi > hash2.txt
+
+# Comparaison
+cat hash1.txt hash2.txt
+
+#### Resultat
+85bec2a357e6d3b5d89a30638521add0ff6cd81d98dbc90b1df23ab32bb2a6b01d3aeb9c8677e29af73f3b020a17ac3608ea08bcb1f6512039dec15ab1f0735b  montecarlo-pi
+85bec2a357e6d3b5d89a30638521add0ff6cd81d98dbc90b1df23ab32bb2a6b01d3aeb9c8677e29af73f3b020a17ac3608ea08bcb1f6512039dec15ab1f0735b  montecarlo-pi
